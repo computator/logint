@@ -37,16 +37,16 @@ parser = argparse.ArgumentParser(
 	usage="%(prog)s [-h] [file [file ...]] [-r regex [file ...]] ...",
 	formatter_class=argparse.RawDescriptionHelpFormatter,
 	description=(
-		"Merges multiple log files by date\n"
+		"Interleaves lines from multiple log files by timestamp\n"
 		"\n"
-		"The default regex for extracting dates from log file lines is: '" + DEFAULT_REGEX + "'\n"
+		"The default regex for extracting timestamps from log file lines is: '" + DEFAULT_REGEX + "'\n"
 		),
 	epilog=("Examples:\n"
 		"  %(prog)s file1 file2\n"
 		"  %(prog)s -r '^Date: ([^ ]+)' file1 file2\n"
 		"  %(prog)s file1 -r '^Date: ([^ ]+)' file2 -r ',TS=([^,]+)' file3 file4\n"
 		))
-parser.add_argument('-r', nargs='+', metavar=("regex", "file"), action='append', help="Specify a custom regex for all following files")
+parser.add_argument('-r', nargs='+', metavar=("regex", "file"), action='append', help="Specify a custom timestamp regex for all following files")
 parser.add_argument('file', nargs='*')
 
 args = parser.parse_args()
