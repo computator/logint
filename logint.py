@@ -3,10 +3,14 @@
 import re
 import os.path
 import sys
+import datetime
 import dateutil.parser
+import dateutil.tz
 import argparse
 
 DEFAULT_REGEX = r'^\[?([^]]+)(]|: )'
+
+TS_WITH_ZONE = datetime.datetime.now(tz=dateutil.tz.tzlocal())
 
 def get_input_line(inp_id):
 	inp = inputs[inp_id]
@@ -26,7 +30,7 @@ def get_input_line(inp_id):
 		print("ERROR: unmatched or empty capture group with regex '{}' in file '{}' with line: {}".format(regexes[inp[1]].pattern, inp[0].name, line), file=sys.stderr)
 		exit(1)
 	try:
-		linedate = dateutil.parser.parse(sortstr)
+		linedate = dateutil.parser.parse(sortstr, default=TS_WITH_ZONE)
 	except ValueError:
 		print("ERROR: got invalid date string '{}' with regex '{}' in file '{}' with line: {}".format(sortstr, regexes[inp[1]].pattern, inp[0].name, line), file=sys.stderr)
 		exit(1)
