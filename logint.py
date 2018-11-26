@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
 
 import re
 import os.path
@@ -74,7 +73,7 @@ try:
 	for regex_id, files in log_files.items():
 		for file in files:
 			inputs.append((open(file, 'r'), regex_id))
-except IOError as e:
+except OSError as e:
 	print("ERROR: can not open file '{}': {}".format(e.filename, e.strerror), file=sys.stderr)
 	exit(1)
 
