@@ -57,6 +57,11 @@ args = parser.parse_args()
 if not args.r and not args.file:
 	parser.print_usage(sys.stderr)
 	exit(1)
+if args.r:
+	for group in args.r:
+		if len(group) <= 1:
+			parser.print_usage(sys.stderr)
+			exit(1)
 
 log_files = {}
 regexes = []
@@ -66,9 +71,8 @@ try:
 		log_files[len(regexes)-1] = args.file
 	if args.r:
 		for group in args.r:
-			if len(group) > 1:
-				regexes.append(re.compile(group[0]))
-				log_files[len(regexes)-1] = group[1:]
+			regexes.append(re.compile(group[0]))
+			log_files[len(regexes)-1] = group[1:]
 except re.error as e:
 	print("Error in regex '{}' at position {}: {}".format(e.pattern, e.pos, e.msg), file=sys.stderr)
 	exit(1)
