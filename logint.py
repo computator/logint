@@ -18,6 +18,7 @@ def get_input_line(inp_id):
 	line = inp[0].readline()
 	if not line:
 		return None
+	line = line.rstrip('\n')
 	match = regexes[inp[1]].search(line)
 	if not match:
 		print("ERROR: unmatched line with regex '{}' in file '{}' with line: {}".format(regexes[inp[1]].pattern, inp[0].name, line), file=sys.stderr)
@@ -31,7 +32,7 @@ def get_input_line(inp_id):
 	except ValueError:
 		print("ERROR: got invalid date string '{}' with regex '{}' in file '{}' with line: {}".format(sortstr, regexes[inp[1]].pattern, inp[0].name, line), file=sys.stderr)
 		exit(1)
-	return (linedate, line.rstrip('\n'), inp_id)
+	return (linedate, line, inp_id)
 
 parser = argparse.ArgumentParser(
 	usage="%(prog)s [-h] [file [file ...]] [-r regex [file ...]] ...",
