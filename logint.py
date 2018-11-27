@@ -22,11 +22,7 @@ def get_input_line(inp_id):
 	if not match:
 		print("ERROR: unmatched line with regex '{}' in file '{}' with line: {}".format(regexes[inp[1]].pattern, inp[0].name, line), file=sys.stderr)
 		exit(1)
-	try:
-		sortstr = match.group(1)
-	except IndexError:
-		print("ERROR: missing required capture group in regex '{}'".format(regexes[inp[1]].pattern), file=sys.stderr)
-		exit(1)
+	sortstr = match.group(1)
 	if not sortstr:
 		print("ERROR: unmatched or empty capture group with regex '{}' in file '{}' with line: {}".format(regexes[inp[1]].pattern, inp[0].name, line), file=sys.stderr)
 		exit(1)
@@ -76,6 +72,10 @@ try:
 except re.error as e:
 	print("Error in regex '{}' at position {}: {}".format(e.pattern, e.pos, e.msg), file=sys.stderr)
 	exit(1)
+for regex in regexes:
+	if regex.groups < 1:
+		print("ERROR: missing required capture group in regex '{}'".format(regex.pattern), file=sys.stderr)
+		exit(1)
 
 inputs = []
 try:
