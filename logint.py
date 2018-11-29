@@ -170,7 +170,7 @@ while lines:
 	print(outline[1])
 	newline = get_input_line(outline[2])
 	while newline:
-		if lines and newline[0] >= lines[-1][0]:
+		if lines and newline[0] > lines[-1][0]:
 			lines.append(newline)
 			lines.sort(reverse=True)
 			break
