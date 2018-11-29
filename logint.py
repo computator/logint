@@ -13,6 +13,69 @@ DEFAULT_REGEX = r'^\[?([^]]+)(]|: )'
 
 TS_WITH_ZONE = datetime.datetime.now(tz=dateutil.tz.tzlocal())
 
+MONTH_MAP = {m.lower(): i for i, m in enumerate(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], start=1)}
+
+def datetime_from_match(match, filename):
+	if match.re.groupindex:
+		vals = match.groupdict()
+		if 'ts' in vals:
+			try:
+				return datetime.fromtimestamp(float(vals['ts']), tz=dateutil.tz.tzutc())
+			except ValueError:
+				print("ERROR: got invalid unix timestamp '{}' with regex '{}' in file '{}' with line: {}".format(vals['ts'], match.re.pattern, filename, match.string), file=sys.stderr)
+				exit(1)
+		else:
+			if 'm' in vals:
+				try:
+					month = int(vals['m'])
+				except ValueError:
+					print("ERROR: got invalid integer month '{}' with regex '{}' in file '{}' with line: {}".format(vals['m'], match.re.pattern, filename, match.string), file=sys.stderr)
+					exit(1)
+			else:
+				try:
+					monthstr = vals['b'].lower()
+					month = next(MONTH_MAP[m] for m in MONTH_MAP if m.startswith(monthstr))
+				except StopIteration:
+					print("ERROR: got invalid month string '{}' with regex '{}' in file '{}' with line: {}".format(vals['b'], match.re.pattern, filename, match.string), file=sys.stderr)
+					exit(1)
+			if 'y' in vals:
+				try:
+					year = int(vals['y'])
+				except ValueError:
+					print("ERROR: got invalid integer year '{}' with regex '{}' in file '{}' with line: {}".format(vals['y'], match.re.pattern, filename, match.string), file=sys.stderr)
+					exit(1)
+				if year < 100:
+					if year <= (TS_WITH_ZONE.year % 100) + 10:
+						year = year + 2000
+					else:
+						year = year + 1900
+			else:
+				year = TS_WITH_ZONE.year
+			try:
+				return datetime.datetime(
+						year,
+						month,
+						int(vals['d']),
+						int(vals['h']) if 'h' in vals else 0,
+						int(vals['M']) if 'M' in vals else 0,
+						int(vals['s']) if 's' in vals else 0,
+						int(vals['f'].strip().ljust(6, '0')) if 'f' in vals else 0,
+						TS_WITH_ZONE.tzinfo
+					)
+			except ValueError as e:
+				print("ERROR: got invalid date values from match '{}' with regex '{}' in file '{}': {}".format(match.group(), match.re.pattern, filename, e), file=sys.stderr)
+				exit(1)
+	else:
+		sortstr = match.group(1)
+		if not sortstr:
+			print("ERROR: unmatched or empty capture group with regex '{}' in file '{}' with line: {}".format(match.re.pattern, filename, match.string), file=sys.stderr)
+			exit(1)
+		try:
+			return dateutil.parser.parse(sortstr, default=TS_WITH_ZONE)
+		except ValueError:
+			print("ERROR: got invalid date string '{}' with regex '{}' in file '{}' with line: {}".format(sortstr, match.re.pattern, filename, match.string), file=sys.stderr)
+			exit(1)
+
 def get_input_line(inp_id):
 	inp = inputs[inp_id]
 	line = inp[0].readline()
@@ -23,16 +86,7 @@ def get_input_line(inp_id):
 	if not match:
 		print("ERROR: unmatched line with regex '{}' in file '{}' with line: {}".format(regexes[inp[1]].pattern, inp[0].name, line), file=sys.stderr)
 		exit(1)
-	sortstr = match.group(1)
-	if not sortstr:
-		print("ERROR: unmatched or empty capture group with regex '{}' in file '{}' with line: {}".format(regexes[inp[1]].pattern, inp[0].name, line), file=sys.stderr)
-		exit(1)
-	try:
-		linedate = dateutil.parser.parse(sortstr, default=TS_WITH_ZONE)
-	except ValueError:
-		print("ERROR: got invalid date string '{}' with regex '{}' in file '{}' with line: {}".format(sortstr, regexes[inp[1]].pattern, inp[0].name, line), file=sys.stderr)
-		exit(1)
-	return (linedate, line, inp_id)
+	return (datetime_from_match(match, inp[0].name), line, inp_id)
 
 parser = argparse.ArgumentParser(
 	usage="%(prog)s [-h] [file [file ...]] [-r regex [file ...]] ...",
@@ -74,7 +128,14 @@ except re.error as e:
 	print("Error in regex '{}' at position {}: {}".format(e.pattern, e.pos, e.msg), file=sys.stderr)
 	exit(1)
 for regex in regexes:
-	if regex.groups < 1:
+	if regex.groupindex:
+		if 'ts' in regex.groupindex:
+			continue
+		if 'd' in regex.groupindex and {'m', 'b'}.intersection(regex.groupindex):
+			continue
+		print("ERROR: missing required named capture groups in regex '{}'".format(regex.pattern), file=sys.stderr)
+		exit(1)
+	elif regex.groups < 1:
 		print("ERROR: missing required capture group in regex '{}'".format(regex.pattern), file=sys.stderr)
 		exit(1)
 
