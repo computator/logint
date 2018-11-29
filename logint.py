@@ -13,6 +13,8 @@ DEFAULT_REGEX = r'^\[?([^]]+)(]|: )'
 
 TS_WITH_ZONE = datetime.datetime.now(tz=dateutil.tz.tzlocal())
 
+VALID_COMPONENTS = {'s', 'y', 'm', 'b', 'd', 'H', 'M', 'S', 'f'}
+
 MONTH_MAP = {m.lower(): i for i, m in enumerate(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], start=1)}
 
 _month_from_str_cache = {}
@@ -33,11 +35,11 @@ def month_from_str(monthval):
 def datetime_from_match(match, filename):
 	if match.re.groupindex:
 		vals = match.groupdict()
-		if 'ts' in vals:
+		if 's' in vals:
 			try:
-				return datetime.fromtimestamp(float(vals['ts']), tz=dateutil.tz.tzutc())
+				return datetime.datetime.fromtimestamp(float(vals['s']), tz=dateutil.tz.tzutc())
 			except ValueError:
-				print("ERROR: got invalid unix timestamp '{}' with regex '{}' in file '{}' with line: {}".format(vals['ts'], match.re.pattern, filename, match.string), file=sys.stderr)
+				print("ERROR: got invalid unix timestamp '{}' with regex '{}' in file '{}' with line: {}".format(vals['s'], match.re.pattern, filename, match.string), file=sys.stderr)
 				exit(1)
 		else:
 			if 'm' in vals:
@@ -70,9 +72,9 @@ def datetime_from_match(match, filename):
 						year,
 						month,
 						int(vals['d']),
-						int(vals['h']) if 'h' in vals else 0,
+						int(vals['H']) if 'H' in vals else 0,
 						int(vals['M']) if 'M' in vals else 0,
-						int(vals['s']) if 's' in vals else 0,
+						int(vals['S']) if 'S' in vals else 0,
 						int(vals['f'].strip().ljust(6, '0')) if 'f' in vals else 0,
 						TS_WITH_ZONE.tzinfo
 					)
@@ -143,7 +145,10 @@ except re.error as e:
 	exit(1)
 for regex in regexes:
 	if regex.groupindex:
-		if 'ts' in regex.groupindex:
+		if not VALID_COMPONENTS.issuperset(regex.groupindex):
+			print("ERROR: unrecognized named capture group '{}' in regex '{}'".format(set(regex.groupindex).difference(VALID_COMPONENTS).pop(), regex.pattern), file=sys.stderr)
+			exit(1)
+		if 's' in regex.groupindex:
 			continue
 		if 'd' in regex.groupindex and {'m', 'b'}.intersection(regex.groupindex):
 			continue
