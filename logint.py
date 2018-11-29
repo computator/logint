@@ -12,11 +12,11 @@ import argparse
 DEFAULT_REGEX = r'^\[?([^]]+)(]|: )'
 
 TS_WITH_ZONE = datetime.datetime.now(tz=dateutil.tz.tzlocal())
+YEAR_SPLIT = (TS_WITH_ZONE.year % 100) + 10
 
 VALID_COMPONENTS = {'s', 'y', 'm', 'b', 'd', 'H', 'M', 'S', 'f'}
 
 MONTH_MAP = {m.lower(): i for i, m in enumerate(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], start=1)}
-
 _month_from_str_cache = {}
 def month_from_str(monthval):
 	global _month_from_str_cache
@@ -61,7 +61,7 @@ def datetime_from_match(match, filename):
 					print("ERROR: got invalid integer year '{}' with regex '{}' in file '{}' with line: {}".format(vals['y'], match.re.pattern, filename, match.string), file=sys.stderr)
 					exit(1)
 				if year < 100:
-					if year <= (TS_WITH_ZONE.year % 100) + 10:
+					if year <= YEAR_SPLIT:
 						year = year + 2000
 					else:
 						year = year + 1900
@@ -110,12 +110,41 @@ parser = argparse.ArgumentParser(
 	description=(
 		"Interleaves lines from multiple log files by timestamp\n"
 		"\n"
-		"The default regex for extracting timestamps from log file lines is: '" + DEFAULT_REGEX + "'\n"
+		"Regexes can either use named capture groups to extract the various\n"
+		"components of a timestamp, or the first capture group to match the\n"
+		"entire timestamp (SLOW).\n"
+		"\n"
+		"Named capture groups are of the format '(?P<name>...)' where 'name' is one\n"
+		"of the case sensitive date format specifiers.\n"
+		"\n"
+		"The default regex for extracting timestamps from log file lines matches\n"
+		"the entire timestamp with one capture group: '" + DEFAULT_REGEX + "'\n"
 		),
-	epilog=("Examples:\n"
+	epilog=(
+		"date format specifiers:\n"
+		"  's'  Unix Timestamp (supersedes all other values)\n"
+		"  'y'  Year as decimal 0000-0999,00-99 " + "(00-99 are converted to 19{:02}-20{:02}) (Default: {:04})".format(YEAR_SPLIT + 1, YEAR_SPLIT, TS_WITH_ZONE.year) + "\n"
+		"  'm'  Month as decimal 01-12\n"
+		"  'b'  Month as string Jan-Dec,January-December\n"
+		"  'd'  Day as decimal 00-31\n"
+		"  'H'  Hour as decimal 00-23 (Default: 00)\n"
+		"  'M'  Minute as decimal 00-59 (Default: 00)\n"
+		"  'S'  Second as decimal 00-59 (Default: 00)\n"
+		"  'f'  Fractional second as decimal 0-9,00-99,000-999,000000-999999 (Default: 0)\n"
+		"\n"
+		"Parameter Examples:\n"
 		"  %(prog)s file1 file2\n"
-		"  %(prog)s -r '^Date: ([^ ]+)' file1 file2\n"
-		"  %(prog)s file1 -r '^Date: ([^ ]+)' file2 -r ',TS=([^,]+)' file3 file4\n"
+		"  %(prog)s -r '<(.*)>' file1 file2\n"
+		"  %(prog)s file1 -r '<(.*)>' file2 -r 'TS=(\\w+)' file3 file4\n"
+		"\n"
+		"Regex Examples:\n"
+		"  Date: Jan 1st 2010 08:01am      '^Date: ([^ ]+)'\n"
+		"  Date: 2010-01-01T08:01:01.0001  '^Date: ([^ ]+)'\n"
+		"  ...,TS=1262361661,XYZ=...       ',TS=([^,]+)'\n"
+		"  [1262361661]                    '\\[(?P<s>[0-9]+())\\]'\n"
+		"  [1262361661.0001]               '\\[(?P<s>[0-9]+\\.[0-9]+)\\]'\n"
+		"  [01/01/2010]                    '\\[(?P<m>[0-9]+)/(?P<d>[0-9]+)/(?P<y>[0-9]+)\\]'\n"
+		"  Jan 01 08:01:01                 '^(?P<b>\\w+) (?P<d>[0-9]+) (?P<H>[0-9]+):(?P<M>[0-9]+):(?P<S>[0-9]+)'\n"
 		))
 parser.add_argument('-r', nargs='+', metavar=("regex", "file"), action='append', help="Specify a custom timestamp regex for all following files")
 parser.add_argument('file', nargs='*')
