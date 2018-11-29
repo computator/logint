@@ -15,6 +15,21 @@ TS_WITH_ZONE = datetime.datetime.now(tz=dateutil.tz.tzlocal())
 
 MONTH_MAP = {m.lower(): i for i, m in enumerate(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], start=1)}
 
+_month_from_str_cache = {}
+def month_from_str(monthval):
+	global _month_from_str_cache
+	if not monthval:
+		raise ValueError()
+	if monthval[:9] in _month_from_str_cache:
+		return _month_from_str_cache[monthval[:9]]
+	monthstr = monthval.lower()
+	try:
+		month = next(MONTH_MAP[m] for m in MONTH_MAP if m.startswith(monthstr))
+	except StopIteration:
+		raise ValueError()
+	_month_from_str_cache[monthval[:9]] = month
+	return month
+
 def datetime_from_match(match, filename):
 	if match.re.groupindex:
 		vals = match.groupdict()
@@ -33,9 +48,8 @@ def datetime_from_match(match, filename):
 					exit(1)
 			else:
 				try:
-					monthstr = vals['b'].lower()
-					month = next(MONTH_MAP[m] for m in MONTH_MAP if m.startswith(monthstr))
-				except StopIteration:
+					month = month_from_str(vals['b'])
+				except ValueError:
 					print("ERROR: got invalid month string '{}' with regex '{}' in file '{}' with line: {}".format(vals['b'], match.re.pattern, filename, match.string), file=sys.stderr)
 					exit(1)
 			if 'y' in vals:
