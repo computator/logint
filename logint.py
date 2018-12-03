@@ -104,6 +104,13 @@ def get_input_line(inp_id):
 		exit(1)
 	return (datetime_from_match(match, inp[0].name), line, inp_id)
 
+_buff_print_linebuff = []
+def buff_print(line):
+	_buff_print_linebuff.append(line)
+	if len(_buff_print_linebuff) >= 256:
+		print('\n'.join(_buff_print_linebuff))
+		del _buff_print_linebuff[:]
+
 parser = argparse.ArgumentParser(
 	usage="%(prog)s [-h] [file [file ...]] [-r regex [file ...]] ...",
 	formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -201,12 +208,12 @@ lines = [inp for inp in (get_input_line(inp_id) for inp_id in range(len(inputs))
 lines.sort(reverse=True)
 while lines:
 	outline = lines.pop()
-	print(outline[1])
+	buff_print(outline[1])
 	newline = get_input_line(outline[2])
 	while newline:
 		if lines and newline[0] > lines[-1][0]:
 			lines.append(newline)
 			lines.sort(reverse=True)
 			break
-		print(newline[1])
+		buff_print(newline[1])
 		newline = get_input_line(newline[2])
