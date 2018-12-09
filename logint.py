@@ -151,12 +151,12 @@ parser.add_argument('file', nargs='*')
 args = parser.parse_args()
 if not args.r and not args.file:
 	parser.print_usage(sys.stderr)
-	exit(1)
+	sys.exit(2)
 if args.r:
 	for group in args.r:
 		if len(group) <= 1:
 			parser.print_usage(sys.stderr)
-			exit(1)
+			sys.exit(2)
 
 log_files = {}
 regexes = []
